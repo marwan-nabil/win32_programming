@@ -2,6 +2,56 @@
 #include <stdlib.h>
 #include <string.h>
 #include <tchar.h>
+#include <ShObjIdl.h>
+#include <strsafe.h>
+
+#define MAX_FILENAME_LENGTH  100
+
+typedef struct WindwoStateTag {
+	WCHAR FileName[MAX_FILENAME_LENGTH];
+} WindowState;
+
+
+int OpenFilePicker(WindowState *WState)
+{
+	// configure COM mode
+	HRESULT Result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+	if (SUCCEEDED(Result))
+	{
+		IFileOpenDialog *FilePickerDialog;
+		// create the FilePicker dialog object
+		Result = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog,
+			(void **) &FilePickerDialog);
+
+		if (SUCCEEDED(Result))
+		{
+			// show the dialog
+			Result = FilePickerDialog->Show(NULL);
+			if (SUCCEEDED(Result))
+			{
+				IShellItem *PickedItem;
+				Result = FilePickerDialog->GetResult(&PickedItem);
+				if (SUCCEEDED(Result))
+				{
+					LPWSTR FileName;
+					Result = PickedItem->GetDisplayName(SIGDN_FILESYSPATH, &FileName);
+					if (SUCCEEDED(Result))
+					{
+						// change the window state
+						lstrcpy(WState->FileName, FileName);
+						CoTaskMemFree(FileName);
+					}
+					// release the shell item object
+					PickedItem->Release();
+				}
+			}
+			FilePickerDialog->Release();
+		}
+		CoUninitialize();
+	}
+
+	return 0;
+}
 
 
 LRESULT CALLBACK WndProc(
@@ -11,20 +61,60 @@ LRESULT CALLBACK WndProc(
 	_In_ LPARAM lParam
 	)
 {
-	TCHAR greeting[] = _T("a new win32 application");
-	PAINTSTRUCT ps;
-	HDC hdc;
+	WindowState *WState;
+	WPARAM VKCode = wParam;
+
+	// initialize window state on window creation
+	if (message == WM_CREATE)
+	{
+		CREATESTRUCT *CreateStruct = (CREATESTRUCT *) lParam;
+		WState = (WindowState *) CreateStruct->lpCreateParams;
+		// save the windowstate struct pointer to this window
+		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR) WState);
+	}
+	// get current window state on subsequent messages
+	else
+	{
+		LONG_PTR StatePtr = GetWindowLongPtr(hWnd, GWLP_USERDATA);
+		WState = (WindowState *) StatePtr;
+	}
 
 	switch (message)
 	{
 	case WM_PAINT:
-		// app layout
+		PAINTSTRUCT ps;
+		HDC hdc;
+
 		hdc = BeginPaint(hWnd, &ps);
 
-		TextOut(hdc, 5, 5,
-			greeting, _tcslen(greeting));
+		FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW + 1));
+
+		TextOut(hdc, 5, 5, (LPCWSTR) WState->FileName, wcslen((LPCWSTR) WState->FileName));
 
 		EndPaint(hWnd, &ps);
+		break;
+
+	case WM_SYSKEYDOWN:
+	case WM_SYSKEYUP:
+	case WM_KEYDOWN:
+	case WM_KEYUP:
+		if (VKCode == 'O')
+		{
+			OpenFilePicker(WState);
+			// trigger a repaint
+			UpdateWindow(hWnd);
+		}
+		break;
+
+	case WM_CLOSE:
+		if (MessageBox(hWnd, L"Do you want to quit ?", L"quit prompt", MB_OKCANCEL) == IDOK)
+		{
+			DestroyWindow(hWnd);
+		}
+		else
+		{
+			return 0;
+		}
 		break;
 
 	case WM_DESTROY:
@@ -47,7 +137,9 @@ int CALLBACK WinMain(
 	_In_ int       nCmdShow
 	)
 {
-	/********************************** create a window class object */
+	/*
+	* create a window class object
+	*/
 	WNDCLASSEX wcex;
 
 	wcex.cbSize = sizeof(WNDCLASSEX);
@@ -58,12 +150,14 @@ int CALLBACK WinMain(
 	wcex.hInstance = hInstance;
 	wcex.hIcon = LoadIcon(hInstance, IDI_APPLICATION);
 	wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wcex.hbrBackground = (HBRUSH) (COLOR_WINDOW + 1);
 	wcex.lpszMenuName = NULL;
 	wcex.lpszClassName = _T("DesktopApp");
 	wcex.hIconSm = LoadIcon(wcex.hInstance, IDI_APPLICATION);
 
-	/********************************** register the window class object */
+	/*
+	* register the window class object
+	*/
 	if (!RegisterClassEx(&wcex))
 	{
 		MessageBox(NULL,
@@ -74,9 +168,15 @@ int CALLBACK WinMain(
 		return 1;
 	}
 
-	/********************************** create a window */
+	/*
+	* create a window
+	*/
 	static TCHAR szWindowClass[] = _T("DesktopApp");
 	static TCHAR szTitle[] = _T("simple win32 application");
+
+	// initialize some window-specific state
+	WindowState WState = {};
+	StringCchCopy((STRSAFE_LPWSTR) &WState.FileName, sizeof(WState.FileName), _T("no file selected"));
 
 	HWND hWnd = CreateWindow(
 		szWindowClass,
@@ -87,8 +187,9 @@ int CALLBACK WinMain(
 		NULL,
 		NULL,
 		hInstance,
-		NULL
+		&WState
 		);
+
 	if (!hWnd)
 	{
 		MessageBox(NULL,
@@ -102,7 +203,9 @@ int CALLBACK WinMain(
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 
-	/********************************** the message loop */
+	/*
+	* the message loop
+	*/
 	MSG msg;
 	while (GetMessage(&msg, NULL, 0, 0))
 	{
@@ -110,6 +213,6 @@ int CALLBACK WinMain(
 		DispatchMessage(&msg);
 	}
 
-	return (int)msg.wParam;
+	return (int) msg.wParam;
 
 }
