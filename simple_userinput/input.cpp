@@ -3,6 +3,7 @@
 #include "graphics.h"
 
 static bool IsMouseTracked = false;
+program_mode ProgramMode;
 
 static void EnableOtherMouseMessages(HWND Window);
 
@@ -73,4 +74,9 @@ void OnMouseLeave(HWND Window, int pixelX, int pixelY, DWORD flags)
 {
 	OutputDebugStringW(L"WM_MOUSELEAVE message received\n");
 	IsMouseTracked = false;
+}
+
+void SetMode(program_mode NewProgramMode)
+{
+	ProgramMode = NewProgramMode;
 }

@@ -9,6 +9,7 @@
 
 #include "graphics.h"
 #include "input.h"
+#include "resource.h"
 
 LRESULT CALLBACK WndProc(
 	_In_ HWND   hWnd,
@@ -18,6 +19,7 @@ LRESULT CALLBACK WndProc(
 	)
 {
 	int Result = 0;
+	wchar_t DebugMessage[32];
 
 	switch (message)
 	{
@@ -25,6 +27,7 @@ LRESULT CALLBACK WndProc(
 		Result = InitD2DFactoryObject();
 		UpdateDPIScale();
 		break;
+
 	case WM_PAINT:
 		PaintRenderTarget(hWnd);
 		break;
@@ -67,6 +70,61 @@ LRESULT CALLBACK WndProc(
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
+
+	// keyboard messages
+	case WM_SYSKEYDOWN:
+		swprintf_s(DebugMessage, L"WM_SYSKEYDOWN: 0x%x\n", wParam);
+		OutputDebugString(DebugMessage);
+		break;
+
+	case WM_SYSCHAR:
+		swprintf_s(DebugMessage, L"WM_SYSCHAR: %c\n", (wchar_t) wParam);
+		OutputDebugString(DebugMessage);
+		break;
+
+	case WM_SYSKEYUP:
+		swprintf_s(DebugMessage, L"WM_SYSKEYUP: 0x%x\n", wParam);
+		OutputDebugString(DebugMessage);
+		break;
+
+	case WM_KEYDOWN:
+		swprintf_s(DebugMessage, L"WM_KEYDOWN: 0x%x\n", wParam);
+		OutputDebugString(DebugMessage);
+		break;
+
+	case WM_KEYUP:
+		swprintf_s(DebugMessage, L"WM_KEYUP: 0x%x\n", wParam);
+		OutputDebugString(DebugMessage);
+		break;
+
+	case WM_CHAR:
+		swprintf_s(DebugMessage, L"WM_CHAR: %c\n", (wchar_t) wParam);
+		OutputDebugString(DebugMessage);
+		break;
+
+	case WM_COMMAND:
+		switch(LOWORD(wParam))
+		{
+			case ID_DRAW_MODE:
+				SetMode(DRAW_MODE);
+				break;
+
+			case ID_SELECT_MODE:
+				SetMode(SELECT_MODE);
+				break;
+
+			case ID_TOGGLE_MODE:
+				if(ProgramMode == DRAW_MODE)
+				{
+					SetMode(SELECT_MODE);
+				}
+				else
+				{
+					SetMode(DRAW_MODE);
+				}
+				break;
+		}
+		return 0;
 
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
@@ -126,7 +184,7 @@ int CALLBACK WinMain(
 		szTitle,
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT,
-		500, 100,
+		500, 500,
 		NULL,
 		NULL,
 		hInstance,
@@ -146,6 +204,8 @@ int CALLBACK WinMain(
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 
+	// register the accelerator table
+	HACCEL hAccel = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ACCELERATOR_TABLE));
 
 	/*
 	* the message loop
@@ -153,8 +213,12 @@ int CALLBACK WinMain(
 	MSG msg;
 	while (GetMessage(&msg, NULL, 0, 0))
 	{
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+		// intercept accelerator commands
+		if(!TranslateAccelerator(hWnd, hAccel, &msg))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
 	}
 
 	return (int) msg.wParam;

@@ -14,8 +14,7 @@ static float DPIScaleY = 1.0f;
 
 int InitD2DFactoryObject()
 {
-	if (FAILED(D2D1CreateFactory(
-		D2D1_FACTORY_TYPE_SINGLE_THREADED, &D2D_Factory)))
+	if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &D2D_Factory)))
 	{
 		return -1;
 	}
