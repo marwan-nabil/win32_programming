@@ -118,7 +118,6 @@ struct colored_ellipse *GetSelectedEllipse()
     }
 }
 
-
 void DeleteSelectedEllipse()
 {
     colored_ellipse *SelectedEllipse = GetSelectedEllipse();
