@@ -18,30 +18,27 @@ typedef struct {
     DirectX::XMFLOAT4X4 world;
     DirectX::XMFLOAT4X4 view;
     DirectX::XMFLOAT4X4 projection;
-} ConstantBufferStruct;
-
+} constant_buffer;
 
 // Per-vertex data
 typedef struct {
     DirectX::XMFLOAT3 pos;
     DirectX::XMFLOAT3 color;
-} VertexPositionColor;
-
+} vertex_position_color;
 
 typedef struct {
     DirectX::XMFLOAT3 pos;
     DirectX::XMFLOAT3 normal;
     DirectX::XMFLOAT3 tangent;
-} VertexPositionColorTangent;
-
+} vertex_position_color_tangent;
 
 ////////////////////////////////
 // Globals
 ////////////////////////////////
 
-static ConstantBufferStruct ConstantBufferData;
+static constant_buffer ConstantBufferData;
 static unsigned int  IndexCount;
-static unsigned int  FrameCount;
+static unsigned int  FrameCount = 0;
 
 // Direct3D device resources
 //ID3DXEffect* m_pEffect;
@@ -59,7 +56,6 @@ static ID3D11Buffer *ConstantBuffer;
 HRESULT CreateShaders();
 HRESULT CreateCube();
 void    CreateViewAndPerspective();
-
 
 
 // Create Direct3D shader resources by loading the .cso files.
@@ -108,9 +104,8 @@ HRESULT CreateShaders()
     delete Bytes;
 
     CD3D11_BUFFER_DESC ConstantBufferDescription(
-        sizeof(ConstantBufferStruct),
-        D3D11_BIND_CONSTANT_BUFFER
-        );
+        sizeof(constant_buffer),
+        D3D11_BIND_CONSTANT_BUFFER);
 
     Result = Device->CreateBuffer(&ConstantBufferDescription,
                                   nullptr, &ConstantBuffer);
@@ -181,7 +176,7 @@ HRESULT CreateCube()
     ID3D11Device *Device = GetDevice();
 
     // Create cube geometry.
-    VertexPositionColor CubeVertices[] =
+    vertex_position_color CubeVertices[] =
     {
         {DirectX::XMFLOAT3(-0.5f, -0.5f, -0.5f), DirectX::XMFLOAT3(0, 0, 0), },
         {DirectX::XMFLOAT3(-0.5f, -0.5f, 0.5f), DirectX::XMFLOAT3(0, 0, 1), },
@@ -285,8 +280,8 @@ void CreateWindowSizeDependentResources()
 }
 
 
-// Update the scene.
-void Update()
+// RendererUpdate the scene.
+void RendererUpdate()
 {
     // Rotate the cube 1 degree per frame.
     DirectX::XMStoreFloat4x4(
@@ -302,8 +297,8 @@ void Update()
 }
 
 
-// Render the cube.
-void Render()
+// RendererRender the cube.
+void RendererRender()
 {
     // Use the Direct3D device Context to draw.
     ID3D11DeviceContext *Context = GetDeviceContext();
@@ -334,7 +329,7 @@ void Render()
         );
 
     // Set up the IA stage by setting the input topology and layout.
-    UINT stride = sizeof(VertexPositionColor);
+    UINT stride = sizeof(vertex_position_color);
     UINT offset = 0;
 
     Context->IASetVertexBuffers(

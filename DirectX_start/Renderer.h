@@ -7,7 +7,7 @@
 
 void CreateDeviceDependentResources();
 void CreateWindowSizeDependentResources();
-void Update();
-void Render();
+void RendererUpdate();
+void RendererRender();
 
 void ReleaseResources();

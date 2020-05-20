@@ -7,7 +7,7 @@
 
 // Direct3D Device resources
 static ID3D11Device *D3D_Device;
-static ID3D11DeviceContext *D3D_Context;
+static ID3D11DeviceContext *D3D_DeviceContext;
 static IDXGISwapChain *SwapChain;
 
 // DXGI swap chain device resources
@@ -32,7 +32,7 @@ ID3D11Device *GetDevice()
 
 ID3D11DeviceContext *GetDeviceContext()
 {
-    return D3D_Context;
+    return D3D_DeviceContext;
 }
 
 
@@ -48,7 +48,7 @@ ID3D11DepthStencilView *GetDepthStencil()
 }
 
 
-// creates D3D_Device and D3D_Context
+// creates D3D_Device and D3D_DeviceContext
 HRESULT CreateDeviceResources()
 {
     HRESULT Result = S_OK;
@@ -75,7 +75,7 @@ HRESULT CreateDeviceResources()
         D3D11_SDK_VERSION,          // Always set this to D3D11_SDK_VERSION for Windows Store apps.
         &D3D_Device,	// Returns the Direct3D device created.
         &FeatureLevel,  // Returns feature level of device created.
-        &D3D_Context	// Returns the device immediate context.
+        &D3D_DeviceContext	// Returns the device immediate context.
         );
 
     if(FAILED(Result))
@@ -109,8 +109,8 @@ HRESULT CreateWindowResources(HWND Window)
     IDXGIDevice3 *Device = (IDXGIDevice3 *) D3D_Device;
 
     // Create swap chain.
-    IDXGIAdapter *Adapter;
-    IDXGIFactory *Factory;
+    IDXGIAdapter *Adapter = NULL;
+    IDXGIFactory *Factory = NULL;
 
     Result = Device->GetAdapter(&Adapter);
 
@@ -143,24 +143,25 @@ HRESULT ConfigureBackBuffer()
     BackBuffer->GetDesc(&BackBufferDescription);
 
     // Create a depth-stencil view for use with 3D rendering if needed.
-    CD3D11_TEXTURE2D_DESC DepthStensilDescription;
+    CD3D11_TEXTURE2D_DESC DepthStencilDescription;
 
-    DepthStensilDescription.Width = (UINT) BackBufferDescription.Width;
-    DepthStensilDescription.Height = (UINT) BackBufferDescription.Height;
-    DepthStensilDescription.MipLevels = 1;
-    DepthStensilDescription.ArraySize = 1;
-    DepthStensilDescription.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    DepthStensilDescription.SampleDesc.Count = 1;
-    DepthStensilDescription.SampleDesc.Quality = 0;
-    DepthStensilDescription.Usage = D3D11_USAGE_DEFAULT;
-    DepthStensilDescription.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-    DepthStensilDescription.CPUAccessFlags = 0;
-    DepthStensilDescription.MiscFlags = 0;
+    DepthStencilDescription.Width = (UINT) BackBufferDescription.Width;
+    DepthStencilDescription.Height = (UINT) BackBufferDescription.Height;
+    DepthStencilDescription.MipLevels = 1;
+    DepthStencilDescription.ArraySize = 1;
+    DepthStencilDescription.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    DepthStencilDescription.SampleDesc.Count = 1;
+    DepthStencilDescription.SampleDesc.Quality = 0;
+    DepthStencilDescription.Usage = D3D11_USAGE_DEFAULT;
+    DepthStencilDescription.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    DepthStencilDescription.CPUAccessFlags = 0;
+    DepthStencilDescription.MiscFlags = 0;
 
-    D3D_Device->CreateTexture2D(&DepthStensilDescription,
+    D3D_Device->CreateTexture2D(&DepthStencilDescription,
                                 nullptr,
                                 &DepthStencil);
 
+    // TODO: change this to c
     CD3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc(D3D11_DSV_DIMENSION_TEXTURE2D);
 
     D3D_Device->CreateDepthStencilView(DepthStencil,
@@ -173,7 +174,7 @@ HRESULT ConfigureBackBuffer()
     ViewPort.MinDepth = 0;
     ViewPort.MaxDepth = 1;
 
-    D3D_Context->RSSetViewports(1, &ViewPort);
+    D3D_DeviceContext->RSSetViewports(1, &ViewPort);
 
     return Result;
 }
@@ -200,7 +201,7 @@ HRESULT ReleaseBackBuffer()
     // After releasing references to these resources, we need to call Flush() to 
     // ensure that Direct3D also releases any references it might still have to
     // the same resources - such as pipeline bindings.
-    D3D_Context->Flush();
+    D3D_DeviceContext->Flush();
 
     return Result;
 }
