@@ -4,8 +4,8 @@
 #include <D3d11.h>
 #include <dxgi1_3.h>
 
-HRESULT CreateDeviceResources();
-HRESULT CreateWindowResources(HWND hWnd);
+HRESULT CreateDeviceResources(HWND hWnd);
+//HRESULT CreateWindowResources(HWND hWnd);
 
 HRESULT ConfigureBackBuffer();
 HRESULT ReleaseBackBuffer();

@@ -49,8 +49,9 @@ ID3D11DepthStencilView *GetDepthStencil()
 
 
 // creates D3D_Device and D3D_DeviceContext
-HRESULT CreateDeviceResources()
+HRESULT CreateDeviceResources(HWND Window)
 {
+#if 0
     HRESULT Result = S_OK;
     // supported feature levels
     D3D_FEATURE_LEVEL levels[] = {
@@ -86,45 +87,113 @@ HRESULT CreateDeviceResources()
     }
 
     return Result;
+#else
+    HRESULT Result = S_OK;
+    // supported feature levels
+    D3D_FEATURE_LEVEL levels[] = {
+        D3D_FEATURE_LEVEL_9_1,
+        D3D_FEATURE_LEVEL_9_2,
+        D3D_FEATURE_LEVEL_9_3,
+        D3D_FEATURE_LEVEL_10_0,
+        D3D_FEATURE_LEVEL_10_1,
+        D3D_FEATURE_LEVEL_11_0,
+        D3D_FEATURE_LEVEL_11_1
+    };
+
+    UINT deviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG;
+
+    DXGI_SWAP_CHAIN_DESC desc;
+    ZeroMemory(&desc, sizeof(DXGI_SWAP_CHAIN_DESC));
+    desc.Windowed = TRUE;
+    desc.BufferCount = 2;
+    desc.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    desc.SampleDesc.Count = 1;      //multisampling setting
+    desc.SampleDesc.Quality = 0;    //vendor-specific flag
+    desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+    desc.OutputWindow = Window;
+
+    Result = D3D11CreateDeviceAndSwapChain(
+        nullptr,
+        D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_HARDWARE,
+        nullptr,
+        deviceFlags,
+        levels,
+        ARRAYSIZE(levels),
+        D3D11_SDK_VERSION,
+        &desc,
+        &SwapChain,
+        &D3D_Device,
+        &FeatureLevel,
+        &D3D_DeviceContext
+        );
+
+    // Configure the back buffer and viewport.
+    Result = SwapChain->GetBuffer(
+        0,
+        __uuidof(ID3D11Texture2D),
+        (void **) &BackBuffer);
+
+    BackBuffer->GetDesc(&BackBufferDescription);
+
+    ZeroMemory(&ViewPort, sizeof(D3D11_VIEWPORT));
+    ViewPort.Height = (float) BackBufferDescription.Height;
+    ViewPort.Width = (float) BackBufferDescription.Width;
+    ViewPort.MinDepth = 0;
+    ViewPort.MaxDepth = 1;
+
+
+    D3D_DeviceContext->RSSetViewports(
+        1,
+        &ViewPort
+        );
+
+    Result = D3D_Device->CreateRenderTargetView(
+        BackBuffer,
+        nullptr,
+        &RenderTarget
+        );
+
+    return Result;
+#endif
 }
 
 
 // creates SwapChain
-HRESULT CreateWindowResources(HWND Window)
-{
-    HRESULT Result = S_OK;
-
-    DXGI_SWAP_CHAIN_DESC SwapChainDescription;
-    ZeroMemory(&SwapChainDescription, sizeof(DXGI_SWAP_CHAIN_DESC));
-    SwapChainDescription.Windowed = TRUE; // Sets the initial state of full-screen mode.
-    SwapChainDescription.BufferCount = 2;
-    SwapChainDescription.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-    SwapChainDescription.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    SwapChainDescription.SampleDesc.Count = 1;      // multisampling setting
-    SwapChainDescription.SampleDesc.Quality = 0;    // vendor-specific flag
-    SwapChainDescription.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-    SwapChainDescription.OutputWindow = Window;
-
-    // Create the DXGI device object to use in other factories, such as Direct2D.
-    IDXGIDevice3 *Device = (IDXGIDevice3 *) D3D_Device;
-
-    // Create swap chain.
-    IDXGIAdapter *Adapter = NULL;
-    IDXGIFactory *Factory = NULL;
-
-    Result = Device->GetAdapter(&Adapter);
-
-    if(SUCCEEDED(Result))
-    {
-        Adapter->GetParent(IID_PPV_ARGS(&Factory));
-
-        Result = Factory->
-            CreateSwapChain(D3D_Device, &SwapChainDescription, &SwapChain);
-    }
-
-    Result = ConfigureBackBuffer();
-    return Result;
-}
+//HRESULT CreateWindowResources(HWND Window)
+//{
+//    HRESULT Result = S_OK;
+//
+//    DXGI_SWAP_CHAIN_DESC SwapChainDescription;
+//    ZeroMemory(&SwapChainDescription, sizeof(DXGI_SWAP_CHAIN_DESC));
+//    SwapChainDescription.Windowed = TRUE; // Sets the initial state of full-screen mode.
+//    SwapChainDescription.BufferCount = 2;
+//    SwapChainDescription.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+//    SwapChainDescription.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+//    SwapChainDescription.SampleDesc.Count = 1;      // multisampling setting
+//    SwapChainDescription.SampleDesc.Quality = 0;    // vendor-specific flag
+//    SwapChainDescription.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+//    SwapChainDescription.OutputWindow = Window;
+//
+//    // Create the DXGI device object to use in other factories, such as Direct2D.
+//    IDXGIDevice *Device = (IDXGIDevice *) D3D_Device;
+//    // Create swap chain.
+//    IDXGIAdapter *Adapter = NULL;
+//    IDXGIFactory *Factory = NULL;
+//
+//    Result = Device->GetAdapter(&Adapter);
+//
+//    if(SUCCEEDED(Result))
+//    {
+//        Adapter->GetParent(IID_PPV_ARGS(&Factory));
+//
+//        Result = Factory->
+//            CreateSwapChain(D3D_Device, &SwapChainDescription, &SwapChain);
+//    }
+//
+//    Result = ConfigureBackBuffer();
+//    return Result;
+//}
 
 
 // creates BackBuffer, RenderTarget, BackBufferDescription, 

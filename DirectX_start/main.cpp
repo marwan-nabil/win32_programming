@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <tchar.h>
+#include <stdio.h>
 
 #include "DeviceResources.h"
 #include "Renderer.h"
@@ -10,7 +11,6 @@ LRESULT CALLBACK WindowProc(_In_ HWND hWnd, _In_ UINT message, _In_ WPARAM wPara
                          	_In_ LPARAM lParam)
 {
     int Result = 0;
-
     switch(message)
     {
         case WM_CREATE:
@@ -101,16 +101,13 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
     // -------------------------
 
     // Instantiate the device manager
-    CreateDeviceResources();
+    CreateDeviceResources(hWnd);
     // Instantiate the renderer.
     CreateDeviceDependentResources();
     // We have a window, so initialize window size-dependent resources.
-    CreateWindowResources(hWnd);
+    //CreateWindowResources(hWnd);
     CreateWindowSizeDependentResources();
-    // Go full-screen.
-    GoFullScreen();
-    // we changed window size
-    CreateWindowSizeDependentResources();
+
 
     // show the window
     ShowWindow(hWnd, nCmdShow);
@@ -123,7 +120,9 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
     MSG msg;
     while (Running)
     {
-	    if(PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE))
+        // BUG: message saturation happens
+        // TODO: fix the message saturation problem
+	    if(PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE) != 0)
 	    {
 	        TranslateMessage(&msg);
 	        DispatchMessage(&msg);

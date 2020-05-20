@@ -71,13 +71,12 @@ HRESULT CreateShaders()
     FILE *VertexShaderFile, *PixelShaderFile;
     BYTE *Bytes;
 
-    size_t DestSize = 4096;
+    size_t DestSize = 32767;
     size_t BytesRead = 0;
     Bytes = new BYTE[DestSize];
 
     fopen_s(&VertexShaderFile, "CubeVertexShader.cso", "rb");
-    BytesRead = fread_s(Bytes, DestSize, 1, 4096, VertexShaderFile);
-
+    BytesRead = fread_s(Bytes, DestSize, 1, DestSize, VertexShaderFile);
     Result = Device->CreateVertexShader(Bytes, BytesRead, nullptr, &VertexShader);
 
     D3D11_INPUT_ELEMENT_DESC InputDescriptionsArray[] =
@@ -98,7 +97,7 @@ HRESULT CreateShaders()
     Bytes = new BYTE[DestSize];
     BytesRead = 0;
     fopen_s(&PixelShaderFile, "CubePixelShader.cso", "rb");
-    BytesRead = fread_s(Bytes, DestSize, 1, 4096, PixelShaderFile);
+    BytesRead = fread_s(Bytes, DestSize, 1, DestSize, PixelShaderFile);
     Result = Device->CreatePixelShader(Bytes, BytesRead, nullptr, &PixelShader);
 
     delete Bytes;
@@ -265,11 +264,12 @@ void CreateViewAndPerspective()
 // Create device-dependent resources for rendering.
 void CreateDeviceDependentResources()
 {
+    HRESULT Result;
     // Compile shaders using the Effects library.
-    CreateShaders();
+    Result = CreateShaders();
 
     // Load the geometry for the spinning cube.
-    CreateCube();
+    Result = CreateCube();
 }
 
 
@@ -315,6 +315,8 @@ void RendererRender()
         RenderTarget,
         teal
         );
+    // BUG: ClearDepthStencilView() fails
+    // TODO: fix this
     Context->ClearDepthStencilView(
         DepthStencil,
         D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
